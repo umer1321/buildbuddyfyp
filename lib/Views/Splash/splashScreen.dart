@@ -1,8 +1,5 @@
-
-/*import 'package:flutter/material.dart';
-import 'package:buildbuddyfyp/Routes/app_routes.dart';
-
-
+import 'package:flutter/material.dart';
+import '../shared/widgets/custom_button.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,49 +8,68 @@ class SplashScreen extends StatefulWidget {
   SplashScreenState createState() => SplashScreenState();
 }
 
-class SplashScreenState extends State<SplashScreen> {
+class SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
   @override
   void initState() {
     super.initState();
-    _navigateToNextScreen();
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(_animationController);
+
+    _animationController.addListener(() {
+      if (_animationController.status == AnimationStatus.completed) {
+        // Navigate to the next screen after the animation is complete
+        Navigator.pushReplacementNamed(context, '/boarding');
+      }
+    });
+
+    _animationController.forward();
   }
 
-  Future<void> _navigateToNextScreen() async {
-    // Simulate some loading or initialization process
-    await Future.delayed(const Duration(seconds: 5));
-
-    // Navigate to the appropriate screen based on authentication state
-    if (await _isUserAuthenticated()) {
-      // Navigate to the appropriate dashboard screen
-     // Navigator.pushNamed(context, AppRoutes.homeownerDashboard);
-    } else {
-      // Navigate to the login screen
-      Navigator.pushNamed(context, AppRoutes.login);
-    }
-  }
-
-  Future<bool> _isUserAuthenticated() async {
-    // Implement the logic to check if the user is authenticated
-    // (e.g., check if the user has a valid session or token)
-    return false;
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/images/logo.png', width: 100),
-            const SizedBox(height: 16.0),
-            Text(
-              'BuildBuddy',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: Stack(
+        children: [
+          // Background color or image
+          Container(
+            color: Colors.white,
+          ),
+          // Animated app logo
+          Center(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Image.asset('assets/logo.png', width: 120),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-}*/
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
