@@ -5,12 +5,23 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.5.1'
-        classpath 'com.google.gms:google-services:4.4.2' // Ensure this is included for Firebase and Google services
+        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath 'com.google.gms:google-services:4.4.2'
     }
 }
 
 allprojects {
+
+    tasks.withType(JavaCompile) {
+        options.fork = true
+        allprojects {
+            tasks.withType(JavaCompile) {
+                options.fork = true
+                options.forkOptions.javaHome = file('C:\\Program Files\\Java\\jdk-17')
+            }
+        }
+
+    }
     repositories {
         google()
         mavenCentral()
