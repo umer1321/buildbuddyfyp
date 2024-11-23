@@ -43,11 +43,31 @@ dependencies:
   smooth_page_indicator: ^1.2.0+3
   firebase_ui_database: ^1.5.0
   firebase_database: ^11.1.6
+  flutter_launcher_icons: ^0.14.1
+  fluttertoast: ^8.2.8
+  cloud_firestore: ^5.5.0
+  flutter_chat_ui: ^1.6.15
+  firebase_messaging: ^15.1.5
+
+
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
+  image_path_android: "assets/logo.png"
+  image_path_ios: "assets/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/logo.png"
+
+
+
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

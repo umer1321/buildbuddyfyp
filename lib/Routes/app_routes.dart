@@ -1,47 +1,57 @@
-import 'package:flutter/material.dart';
-
-
-import '../Views/Login/boardingscreen.dart';
+import 'package:get/get.dart';
+import '../views/Login/boardingscreen.dart';
 import '../views/Login/startedScreen.dart';
 import '../views/Login/loginPage.dart';
 import '../views/Login/signUp.dart';
 import '../views/Login/forgotPassword.dart';
 import '../views/Login/splashScreen.dart';
-import '../Views/DashBoard/stakeholderSelection.dart';
-//import 'package:buildbuddyfyp/Splash/splashScreen.dart';
+import '../views/DashBoard/stakeholderSelection.dart';
 
 class AppRoutes {
-  static Map<String, WidgetBuilder> routes = {
-    '/': (context) => const SplashScreen(),          // Initial route - Splash screen
-    '/boarding': (context) => const BoardingScreen(), // Boarding screen
-    '/get-started': (context) => const GetStartedScreen(), // Get started screen
-    '/sign-in': (context) => const SignInScreen(),    // Sign in screen
-    '/sign-up': (context) => const SignUpScreen(),    // Sign up screen
-    '/forgot-password': (context) => const ForgotPasswordScreen(), // Forgot password screen
-    '/stakeholder': (context) => const StakeholderSelection(), // Stakeholder selection screen
-  };
+  // Define routes for GetMaterialApp
+  static final getPages = [
+    GetPage(name: '/', page: () => const SplashScreen()),          // Initial route - Splash screen
+    GetPage(name: '/boarding', page: () => const BoardingScreen()), // Boarding screen
+    GetPage(
+      name: '/get-started',
+      page: () => const GetStartedScreen(),
+      transition: Transition.fadeIn,
+      binding: BindingsBuilder(() {
+        Get.put(GetStartedScreen());
+      }),
+    ),
+    GetPage(name: '/sign-in', page: () => const SignInScreen()),
+    GetPage(name: '/sign-up', page: () => const SignUpScreen()),
+    GetPage(name: '/forgot-password', page: () => const ForgotPasswordScreen()),
+    GetPage(name: '/stakeholder', page: () => const StakeholderSelection()),
+  ];
 }
 
 
 
 
-/*import 'package:flutter/material.dart';
 
-import '../Views/Login/boardingscreen.dart';
-import '../views/Login/startedScreen.dart';
-import '../views/Login/loginPage.dart';
-import '../views/Login/signUp.dart';
-import '../views/Login/forgotPassword.dart';
-import '../views/Login/splashScreen.dart';
-//import 'package:buildbuddyfyp/Splash/splashScreen.dart';
 
-class AppRoutes {
-  static Map<String, WidgetBuilder> routes = {
-    '/': (context) => const SplashScreen(),
-    '/boarding': (context) => const BoardingScreen(),
-    '/get-started': (context) => const GetStartedScreen(),
-    '/sign-in': (context) => const SignInScreen(),
-    '/sign-up': (context) => const SignUpScreen(),
-    '/forgot-password': (context) => const ForgotPasswordScreen(),
-  };
-}*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

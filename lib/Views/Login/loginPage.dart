@@ -1,15 +1,18 @@
-import 'package:buildbuddyfyp/Views/DashBoard/HomeOwner.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/HomeOwner.dart';
 import 'package:buildbuddyfyp/Views/Login/signUp.dart';
 import 'package:buildbuddyfyp/Views/Login/forgotPassword.dart';
+import 'package:get/get.dart';
 import '../../Models/userModels.dart';
 import '../Shared/widgets/custom_button.dart';
 import '../Shared/widgets/input_field.dart';
 import '../../Controllers/authControllers.dart';
-
-
-
-
+import 'package:buildbuddyfyp/Views/DashBoard/Architect.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/Vendor.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/Admin.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/Constructor.dart';
 
 // Password Validator class
 class PasswordValidator {
@@ -39,7 +42,7 @@ class PasswordValidator {
   }
 }
 
-// Convert to StatefulWidget
+// SignInScreen StatefulWidget
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
@@ -47,16 +50,15 @@ class SignInScreen extends StatefulWidget {
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
+
 class _SignInScreenState extends State<SignInScreen> {
-  //late AuthController _authController;
-  // Add form key and controllers
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _rememberMe = false;
   bool _obscurePassword = true;
-  final _authController = UserController();
+  final AuthController _authController = Get.find<AuthController>();
 
   @override
   void dispose() {
@@ -65,7 +67,508 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  // Add email validation
+  // Improved email validation
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email is required';
+    }
+    if (!RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+').hasMatch(value)) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  }
+
+////
+
+
+
+   // Improved sign in handler with proper error handling
+  void _handleSignIn() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await _authController.signInWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (success && mounted) {
+        // Clear any previous error messages
+        _authController.clearError();
+
+        final userData = _authController.currentUser.value;
+        if (userData != null) {
+          if (_rememberMe) {
+            // Implement remember me functionality
+            await _saveUserCredentials();
+          }
+          _navigateBasedOnRole(userData.role);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Improved Google sign-in handler with error handling
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      setState(() => _isLoading = true);
+
+      /*final selectedRole = await _showRoleSelectionDialog();
+      if (selectedRole == null) {
+        setState(() => _isLoading = false);
+        return;
+      }*/
+      final selectedRole = await _showRoleSelectionDialog();
+      print('Selected Role: $selectedRole');
+      if (selectedRole == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+
+      final success = await _authController.signInWithGoogle(selectedRole);
+
+      if (success && mounted) {
+        final userData = _authController.currentUser.value;
+        if (userData != null) {
+          _navigateBasedOnRole(userData.role);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Sign-in Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Improved role selection dialog
+ /* Future<UserRole?> _showRoleSelectionDialog() async {
+    return showDialog<UserRole>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Your Role'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: UserRole.values
+                  .where((role) => role != UserRole.admin) // Exclude admin role
+                  .map((role) {
+                return ListTile(
+                  title: Text(role.name.toUpperCase()),
+                  onTap: () => Navigator.pop(context, role),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+*/
+
+  Future<UserRole?> _showRoleSelectionDialog() async {
+    return showDialog<UserRole>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Your Role'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: UserRole.values
+                  .where((role) => role != UserRole.admin) // Exclude admin role
+                  .map((role) {
+                return ListTile(
+                  title: Text(role.toString().split('.').last.toUpperCase()),
+                  onTap: () => Navigator.pop(context, role),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void _navigateBasedOnRole(UserRole role) {
+    if (!mounted) return;
+
+    print("Navigating based on role: ${role.toString()}"); // Debug log
+
+    Widget dashboard;
+    switch (role) {
+      case UserRole.homeowner:
+        dashboard = const HomeOwnerDashboard();
+        break;
+      case UserRole.contractor:
+        dashboard = const ContractorDashboard();
+        break;
+      case UserRole.architect:
+        dashboard = const ArchitectDashboard();
+        break;
+      case UserRole.vendor:
+        dashboard = const VendorDashboard();
+        break;
+      case UserRole.admin:
+        dashboard = const AdminDashboard();
+        break;
+      default:
+        dashboard = const HomeOwnerDashboard(); // Fallback
+    }
+
+    Get.offAll(() => dashboard); // Use GetX for navigation
+  }
+
+  /*// Improved navigation based on role
+  void _navigateBasedOnRole(UserRole role) {
+    if (!mounted) return;
+
+    Widget dashboard;
+    switch (role) {
+      case UserRole.homeowner:
+        dashboard = const HomeOwnerDashboard();
+        break;
+      case UserRole.contractor:
+        dashboard = const ContractorDashboard();
+        break;
+      case UserRole.architect:
+        dashboard = const ArchitectDashboard();
+        break;
+      case UserRole.vendor:
+        dashboard = const VendorDashboard();
+        break;
+      case UserRole.admin:
+        dashboard = const AdminDashboard();
+        break;
+      default:
+        dashboard = const HomeOwnerDashboard();
+    }
+
+    Get.offAll(() => dashboard);
+
+  }
+*/
+  // Helper method to save user credentials for Remember Me
+  Future<void> _saveUserCredentials() async {
+    // Implement secure credential storage
+    // Note: Use secure storage like flutter_secure_storage in production
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background circles for aesthetics
+          Positioned(
+            top: -50,
+            right: -70,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue,
+              ),
+            ),
+          ),
+          Positioned(
+            top: -20,
+            right: 50,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF1a237e),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -100,
+            left: -50,
+            child: Container(
+              width: 300,
+              height: 500,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -180,
+            right: -100,
+            child: Container(
+              width: 600,
+              height: 450,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF1a237e),
+              ),
+            ),
+          ),
+          // Sign-in form
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 50),
+                      const Text(
+                        'Welcome\nBack',
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1A1A60),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Hey! Good to see you again',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      InputField(
+                        controller: _emailController,
+                        hintText: 'Email',
+                        prefixIcon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: _validateEmail,
+                      ),
+                      const SizedBox(height: 16),
+                      InputField(
+                        controller: _passwordController,
+                        hintText: 'Password',
+                        prefixIcon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                        validator: PasswordValidator.validatePassword,
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                onChanged: (value) => setState(() => _rememberMe = value ?? false),
+                              ),
+                              const Text('Remember me'),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                            ),
+                            child: const Text(
+                              'Forgot password?',
+                              style: TextStyle(color: Color(0xFF1A1A60)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 140),
+                      CustomButton(
+                        text: 'SIGN IN',
+                        onPressed: _handleSignIn,
+                        isLoading: _isLoading,
+                        icon: Icons.login,
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                        ),
+                        child: const Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(text: "Don't have an account? ", style: TextStyle(color: Colors.white)),
+                              TextSpan(text: "Sign up", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      OutlinedButton(
+                        onPressed: _handleGoogleSignIn,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          side: const BorderSide(color: Colors.blue),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.g_translate, color: Colors.blue),
+                            SizedBox(width: 10),
+                            Text('Sign in with Google', style: TextStyle(color: Colors.blue, fontSize: 16)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Runnable code
+
+/*
+import 'package:flutter/material.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/HomeOwner.dart';
+import 'package:buildbuddyfyp/Views/Login/signUp.dart';
+import 'package:buildbuddyfyp/Views/Login/forgotPassword.dart';
+import '../../Models/userModels.dart';
+import '../Shared/widgets/custom_button.dart';
+import '../Shared/widgets/input_field.dart';
+import '../../Controllers/authControllers.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/Architect.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/Vendor.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/Admin.dart';
+import 'package:buildbuddyfyp/Views/DashBoard/Constructor.dart';
+
+import 'animationScreen.dart';
+
+// Password Validator class
+class PasswordValidator {
+  static String? validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (value.contains(RegExp(r'^[0-9]+$'))) {
+      return 'Password cannot be entirely numeric';
+    }
+    if (!value.contains(RegExp(r'[A-Z]'))) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!value.contains(RegExp(r'[a-z]'))) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!value.contains(RegExp(r'[0-9]'))) {
+      return 'Password must contain at least one number';
+    }
+    if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return 'Password must contain at least one special character';
+    }
+    return null;
+  }
+}
+
+// SignInScreen StatefulWidget
+class SignInScreen extends StatefulWidget {
+  const SignInScreen({super.key});
+
+  @override
+  State<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _rememberMe = false;
+  bool _obscurePassword = true;
+  final _authController = UserController();
+  bool _showSuccessAnimation = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Email validation
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
@@ -76,11 +579,11 @@ class _SignInScreenState extends State<SignInScreen> {
     return null;
   }
 
-  // Add sign in handler
-  void _handleSignIn() async {
+  // Sign in handler
+  */
+/*void _handleSignIn() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
-
       try {
         final response = await _authController.login(
           UserCredentials(
@@ -94,7 +597,6 @@ class _SignInScreenState extends State<SignInScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Signed in successfully!')),
             );
-            // Navigate to appropriate screen based on user role
             _navigateBasedOnRole(response.userData!.role);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -115,37 +617,60 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     }
   }
+*//*
 
-  /*void _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
-
-    try {
-      await _authController.signInWithGoogle();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed in with Google successfully!')),
+  void _handleSignIn() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await _authController.login(
+          UserCredentials(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          ),
         );
-        // Navigate to home page
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+
+        if (mounted) {
+          if (response.success) {
+            setState(() {
+              _isLoading = false;
+              _showSuccessAnimation = true;
+            });
+
+            // Show success animation before navigation
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AuthSuccessAnimation(
+                onAnimationComplete: () {
+                  Navigator.pop(context); // Close the dialog
+                  _navigateBasedOnRole(response.userData!.role);
+                },
+              ),
+            );
+          } else {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response.message)),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString()}')),
+          );
+        }
       }
     }
   }
 
-*/
 
+  */
+/*
+/ Google sign-in handler
   void _handleGoogleSignIn() async {
-    // Show role selection dialog before proceeding with Google sign-in
     final selectedRole = await showDialog<UserRole>(
       context: context,
       builder: (BuildContext context) {
@@ -194,47 +719,123 @@ class _SignInScreenState extends State<SignInScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }*//*
+
+  // Modify _handleGoogleSignIn method
+  void _handleGoogleSignIn() async {
+    final selectedRole = await showDialog<UserRole>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Your Role'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: UserRole.values.map((role) {
+              return ListTile(
+                title: Text(role.name.toUpperCase()),
+                onTap: () => Navigator.pop(context, role),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+
+    if (selectedRole == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await _authController.signInWithGoogle(selectedRole);
+
+      if (mounted) {
+        if (response.success) {
+          setState(() {
+            _isLoading = false;
+            _showSuccessAnimation = true;
+          });
+
+          // Show success animation before navigation
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AuthSuccessAnimation(
+              onAnimationComplete: () {
+                Navigator.pop(context); // Close the dialog
+                _navigateBasedOnRole(response.userData!.role);
+              },
+            ),
+          );
+        } else {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${response.message}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    }
   }
 
-  /*void _navigateBasedOnRole(UserRole role){
 
-  }
-*/
   void _navigateBasedOnRole(UserRole role) {
     switch (role) {
       case UserRole.homeowner:
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeOwnerDashboard())
+          context,
+          MaterialPageRoute(builder: (_) => const HomeOwnerDashboard()),
         );
-        //break;
-     /* case UserRole.contractor:
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => Constructor())*/
-       // );
         break;
-    // Add cases for other roles
-      default:
-      // Default fallback screen if no specific role match
+      case UserRole.contractor:
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeOwnerDashboard())
+          context,
+          MaterialPageRoute(builder: (_) => const ContractorDashboard()),
+        );
+        break;
+      case UserRole.architect:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ArchitectDashboard()),
+        );
+        break;
+      case UserRole.vendor:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const VendorDashboard()),
+        );
+        break;
+      case UserRole.admin:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboard()),
+        );
+        break;
+      default:
+      // Optional: Handle undefined roles
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeOwnerDashboard()),
         );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          // Background circles for aesthetics
           Positioned(
-            top: -55,
-            right: -90,
+            top: -50,
+            right: -70,
             child: Container(
-              width: 250,
+              width: 200,
               height: 200,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
@@ -243,11 +844,11 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ),
           Positioned(
-            top: -55,
+            top: -20,
             right: 50,
             child: Container(
-              width: 250,
-              height: 200,
+              width: 150,
+              height: 150,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color(0xFF1a237e),
@@ -255,11 +856,11 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ),
           Positioned(
-            bottom: -150,
-            left: -100,
+            bottom: -100,
+            left: -50,
             child: Container(
-              width: 400,
-              height: 580,
+              width: 300,
+              height: 500,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.blue,
@@ -267,415 +868,130 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ),
           Positioned(
-            bottom: -270,
-            right: -150,
+            bottom: -180,
+            right: -100,
             child: Container(
-              width: 700,
-              height: 550,
+              width: 600,
+              height: 450,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color(0xFF1a237e),
               ),
             ),
           ),
+          // Sign-in form
           SafeArea(
-            child:SingleChildScrollView(
+            child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                      const SizedBox(height: 60),
-                  const Text(
-                    'Welcome\nBack',
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1A1A60),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Hey! Good to see you again',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  InputField(
-                    controller: _emailController,
-                    hintText: 'Email',
-                    prefixIcon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Email is required';
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                        return 'Please enter a valid email address';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  InputField(
-                    controller: _passwordController,
-                    hintText: 'Password',
-                    prefixIcon: Icons.lock_outline,
-                    obscureText: _obscurePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    //validator: PasswordValidator.validatePassword,
-                    validator: PasswordValidator.validatePassword,
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const SizedBox(height: 50),
+                      const Text(
+                        'Welcome\nBack',
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1A1A60),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Hey! Good to see you again',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      InputField(
+                        controller: _emailController,
+                        hintText: 'Email',
+                        prefixIcon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: _validateEmail,
+                      ),
+                      const SizedBox(height: 16),
+                      InputField(
+                        controller: _passwordController,
+                        hintText: 'Password',
+                        prefixIcon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                        validator: PasswordValidator.validatePassword,
+                      ),
+                      const SizedBox(height: 10),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Checkbox(
-                            value: _rememberMe,
-                            onChanged: (value) => setState(() => _rememberMe = value ?? false),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                onChanged: (value) => setState(() => _rememberMe = value ?? false),
+                              ),
+                              const Text('Remember me'),
+                            ],
                           ),
-                          const Text('Remember me'),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                            ),
+                            child: const Text(
+                              'Forgot password?',
+                              style: TextStyle(color: Color(0xFF1A1A60)),
+                            ),
+                          ),
                         ],
                       ),
+                      const SizedBox(height: 140),
+                      CustomButton(
+                        text: 'SIGN IN',
+                        onPressed: _handleSignIn,
+                        isLoading: _isLoading,
+                        icon: Icons.login,
+                      ),
+                      const SizedBox(height: 16),
                       TextButton(
-                        onPressed: () => Navigator.push(
+                        onPressed: () => Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                          MaterialPageRoute(builder: (_) => const SignUpScreen()),
                         ),
-                        child: const Text(
-                          'Forgot password?',
-                          style: TextStyle(color: Color(0xFF1A1A60)),
+                        child: const Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(text: "Don't have an account? ", style: TextStyle(color: Colors.white)),
+                              TextSpan(text: "Sign up", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      OutlinedButton(
+                        onPressed: _handleGoogleSignIn,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          side: const BorderSide(color: Colors.blue),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.g_translate, color: Colors.blue),
+                            SizedBox(width: 10),
+                            Text('Sign in with Google', style: TextStyle(color: Colors.blue, fontSize: 16)),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 130),
-    CustomButton(
-              text: 'SIGN IN',
-                  onPressed: _handleSignIn,
-                isLoading: _isLoading,
-             icon: Icons.login,
-    ),
-    const SizedBox(height: 16),
-           TextButton(
-        onPressed: () => Navigator.pushReplacement(
-    context,
-                  MaterialPageRoute(builder: (_) => const SignUpScreen()),
-    ), child: const Text(
-             'Don\'t have an account? Sign up',
-             style: TextStyle(
-               color: Colors.white,
-               fontSize: 16,
-             ),
-            ),
-          ),
-        ],
-      ),
-    ),
-    ),
-    ),
-    ),
-    ],
-    ),
-    );
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-import 'package:flutter/material.dart';
-import 'package:buildbuddyfyp/Views/Login/signUp.dart';
-import 'package:buildbuddyfyp/Views/Login/loginPage.dart';
-import 'package:buildbuddyfyp/Views/Login/forgotPassword.dart';
-
-// Add Password Validator class
-class PasswordValidator {
-  static String? validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password is required';
-    }
-    if (value.length < 8) {
-      return 'Password must be at least 8 characters long';
-    }
-    if (value.contains(RegExp(r'^[0-9]+$'))) {
-      return 'Password cannot be entirely numeric';
-    }
-    if (!value.contains(RegExp(r'[A-Z]'))) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (!value.contains(RegExp(r'[a-z]'))) {
-      return 'Password must contain at least one lowercase letter';
-    }
-    if (!value.contains(RegExp(r'[0-9]'))) {
-      return 'Password must contain at least one number';
-    }
-    if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-      return 'Password must contain at least one special character';
-    }
-    return null;
-  }
-}
-
-// Convert to StatefulWidget
-class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
-
-  @override
-  State<SignInScreen> createState() => _SignInScreenState();
-}
-
-class _SignInScreenState extends State<SignInScreen> {
-  // Add form key and controllers
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _rememberMe = false;
-  bool _obscurePassword = true;
-
-  // Add email validation
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Email is required';
-    }
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-      return 'Please enter a valid email address';
-    }
-    return null;
-  }
-
-  // Add sign in handler
-  void _handleSignIn() {
-    if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Processing Sign In')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned(
-            top: -55,
-            right: -90,
-            child: Container(
-              width: 250,
-              height: 200,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.blue,
-              ),
-            ),
-          ),
-          Positioned(
-            top: -55,
-            right: 50,
-            child: Container(
-              width: 250,
-              height: 200,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF1a237e),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -150,
-            left: -100,
-            child: Container(
-              width: 400,
-              height: 580,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.blue,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -270,
-            right: -150,
-            child: Container(
-              width: 700,
-              height: 550,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF1a237e),
-              ),
-            ),
-          ),
-          SafeArea(
-            // Wrap with Form widget
-            child: Form(
-              key: _formKey,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 60),
-                    const Text(
-                      'Welcome \n Back',
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1a237e),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Hey! Good to see you again',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    // Updated email field with validation
-                    TextFormField(
-                      controller: _emailController,
-                      validator: _validateEmail,
-                      decoration: InputDecoration(
-                        hintText: 'Email',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        filled: true,
-                        fillColor: Colors.grey[200],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorStyle: const TextStyle(height: 0.8),
-                        errorMaxLines: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Updated password field with validation and visibility toggle
-                    TextFormField(
-                      controller: _passwordController,
-                      validator: PasswordValidator.validatePassword,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        hintText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[200],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorStyle: const TextStyle(height: 0.8),
-                        errorMaxLines: 3,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            // Updated checkbox with state
-                            Checkbox(
-                              value: _rememberMe,
-                              onChanged: (value) {
-                                setState(() {
-                                  _rememberMe = value ?? false;
-                                });
-                              },
-                            ),
-                            const Text('Remember me'),
-                          ],
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-                            );
-                          },
-                          child: const Text(
-                            'Forgot password?',
-                            style: TextStyle(color: Color(0xFF1a237e)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 130),
-                    ElevatedButton(
-                      // Updated onPressed with validation handler
-                      onPressed: _handleSignIn,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text(
-                        'SIGN IN',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignUpScreen()),
-                      ),
-                      child: const Text(
-                        'Don\'t have an account? Sign up',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -684,182 +1000,6 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
     );
   }
-
-  // Add dispose method
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
 }
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*// screens/sign_in_screen.dart
-import 'package:flutter/material.dart';
-//import 'sign_up_screen.dart';
-import 'signUp.dart';
-
-class SignInScreen extends StatelessWidget {
-  const SignInScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned(
-            top: -100,
-            right: -50,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF1a237e),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Welcome Back',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1a237e),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Hey! Good to see you again',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      hintText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: false,
-                            onChanged: (value) {},
-                          ),
-                          const Text('Remember me'),
-                        ],
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Forgot password?',
-                          style: TextStyle(color: Color(0xFF1a237e)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('SIGN IN'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SignUpScreen()),
-                    ),
-                    child: const Text(
-                      'Don\'t have an account? Sign up',
-                      style: TextStyle(color: Color(0xFF1a237e)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
