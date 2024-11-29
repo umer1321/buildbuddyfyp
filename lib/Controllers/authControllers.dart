@@ -278,7 +278,6 @@ extension UserRoleExtension on UserRole {
 
 
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 
@@ -286,7 +285,7 @@ import 'package:buildbuddyfyp/Services/auth/authService.dart';
 import 'package:buildbuddyfyp/Models/userModels.dart';
 import 'package:flutter/material.dart';
 
-import '../Services/auth/authService.dart';
+
 
 class AuthController extends GetxController {
   final AuthService _authService = AuthService();

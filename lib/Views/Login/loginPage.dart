@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:buildbuddyfyp/Views/DashBoard/HomeOwner.dart';
 import 'package:buildbuddyfyp/Views/Login/signUp.dart';
@@ -13,6 +12,7 @@ import 'package:buildbuddyfyp/Views/DashBoard/Architect.dart';
 import 'package:buildbuddyfyp/Views/DashBoard/Vendor.dart';
 import 'package:buildbuddyfyp/Views/DashBoard/Admin.dart';
 import 'package:buildbuddyfyp/Views/DashBoard/Constructor.dart';
+import 'package:buildbuddyfyp/Views/Shared/widgets/auth_success_animation.dart';
 
 // Password Validator class
 class PasswordValidator {
@@ -82,7 +82,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
 
 
-   // Improved sign in handler with proper error handling
+  /* // Improved sign in handler with proper error handling
   void _handleSignIn() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -122,6 +122,59 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     }
   }
+*/
+
+  void _handleSignIn() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await _authController.signInWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (success && mounted) {
+        // Clear any previous error messages
+        _authController.clearError();
+
+        final userData = _authController.currentUser.value;
+        if (userData != null) {
+          if (_rememberMe) {
+            // Implement remember me functionality
+            await _saveUserCredentials();
+          }
+
+          // Show success animation
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AuthSuccessAnimation(
+              onAnimationComplete: () {
+                Navigator.pop(context);
+                _navigateBasedOnRole(userData.role);
+              },
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
 
   // Improved Google sign-in handler with error handling
   Future<void> _handleGoogleSignIn() async {
@@ -165,38 +218,7 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  // Improved role selection dialog
- /* Future<UserRole?> _showRoleSelectionDialog() async {
-    return showDialog<UserRole>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Select Your Role'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: UserRole.values
-                  .where((role) => role != UserRole.admin) // Exclude admin role
-                  .map((role) {
-                return ListTile(
-                  title: Text(role.name.toUpperCase()),
-                  onTap: () => Navigator.pop(context, role),
-                );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-*/
+
 
   Future<UserRole?> _showRoleSelectionDialog() async {
     return showDialog<UserRole>(
@@ -233,7 +255,7 @@ class _SignInScreenState extends State<SignInScreen> {
   void _navigateBasedOnRole(UserRole role) {
     if (!mounted) return;
 
-    print("Navigating based on role: ${role.toString()}"); // Debug log
+    print("Navigating based on role: ${role.toString()}");
 
     Widget dashboard;
     switch (role) {
@@ -241,10 +263,10 @@ class _SignInScreenState extends State<SignInScreen> {
         dashboard = const HomeOwnerDashboard();
         break;
       case UserRole.contractor:
-        dashboard = const ContractorDashboard();
+        dashboard = ContractorDashboard();
         break;
       case UserRole.architect:
-        dashboard = const ArchitectDashboard();
+        dashboard = ArchitectDashboard();
         break;
       case UserRole.vendor:
         dashboard = const VendorDashboard();

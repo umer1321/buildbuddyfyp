@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../Controllers/authControllers.dart';
 import '../../Models/userModels.dart';
+import '../Shared/widgets/auth_success_animation.dart';
 import '../Shared/widgets/input_field.dart';
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -48,7 +49,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  void _handleSignUp() async {
+ /* void _handleSignUp() async {
     if (_formKey.currentState?.validate() ?? false) {
       // Show a toast about the selected role
       Get.snackbar(
@@ -70,6 +71,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (success) {
         _authController.goToHome();
+      }
+    }
+  }
+*/
+
+
+  void _handleSignUp() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      // Show a toast about the selected role
+      Get.snackbar(
+        'Role Selected',
+        'You are signing up as a ${selectedRole.name.toUpperCase()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.blueAccent,
+        colorText: Colors.white,
+        icon: Icon(Icons.info_outline, color: Colors.white),
+        duration: Duration(seconds: 2),
+      );
+
+      // Register user with selected role
+      final success = await _authController.registerUser(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        role: selectedRole,
+      );
+
+      if (success) {
+        // Show the success animation
+        await showDialog(
+          context: Get.context!,
+          barrierDismissible: false,
+          builder: (context) => AuthSuccessAnimation(
+            onAnimationComplete: () {
+              Navigator.pop(context); // Close the dialog
+              _authController.goToHome(); // Navigate to home
+            },
+          ),
+        );
       }
     }
   }
