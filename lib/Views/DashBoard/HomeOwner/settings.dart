@@ -10,29 +10,61 @@ class SettingsDashboard extends StatelessWidget {
         title: const Text('Settings'),
         backgroundColor: const Color(0xFFF44336),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
+      body: Stack(
         children: [
-          SettingsOption(
-            icon: Icons.account_circle,
-            title: 'Account Settings',
-            onTap: () {
-              // Navigate to account settings
-            },
+          // ListView displaying settings options
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ListView(
+              children: [
+                SettingsOption(
+                  icon: Icons.account_circle,
+                  title: 'Account Settings',
+                  onTap: () {
+                    // Navigate to account settings
+                  },
+                ),
+                SettingsOption(
+                  icon: Icons.notifications,
+                  title: 'Notification Preferences',
+                  onTap: () {
+                    // Navigate to notification settings
+                  },
+                ),
+                SettingsOption(
+                  icon: Icons.security,
+                  title: 'Privacy and Security',
+                  onTap: () {
+                    // Navigate to privacy settings
+                  },
+                ),
+              ],
+            ),
           ),
-          SettingsOption(
-            icon: Icons.notifications,
-            title: 'Notification Preferences',
-            onTap: () {
-              // Navigate to notification settings
-            },
+          // Positioned elements at the bottom
+          Positioned(
+            bottom: -60,
+            left: -100,
+            child: Container(
+              width: 360,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFFFEBEE), // Light pink
+              ),
+            ),
           ),
-          SettingsOption(
-            icon: Icons.security,
-            title: 'Privacy and Security',
-            onTap: () {
-              // Navigate to privacy settings
-            },
+          Positioned(
+            bottom: -80,
+            right: -80,
+            child: Container(
+              width: 360,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFFF7043), // Light orange
+              ),
+            ),
           ),
         ],
       ),

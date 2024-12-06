@@ -105,7 +105,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           builder: (context) => AuthSuccessAnimation(
             onAnimationComplete: () {
               Navigator.pop(context); // Close the dialog
-              _authController.goToHome(); // Navigate to home
+             // _authController.goToHome(); // Navigate to home
             },
           ),
         );
@@ -214,7 +214,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 50),
                       InputField(
                         controller: _emailController,
-                        hintText: 'Email',
+                        hintText: 'Email(e.g.,umer@gmail.com)',
                         prefixIcon: Icons.mail_outline,
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
@@ -230,7 +230,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 16),
                       InputField(
                         controller: _passwordController,
-                        hintText: 'Password',
+                        hintText: 'Password(e.g., Abx@1234)',
                         prefixIcon: Icons.lock_outline,
                         obscureText: _obscurePassword,
                         suffixIcon: IconButton(
@@ -259,13 +259,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 19),
+                      const SizedBox(height: 120),
                       CustomButton(
                         text: 'SIGN UP',
                         onPressed: _handleSignUp,
                         icon: Icons.person_add,
                       ),
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 30),
                       Center(
                         child: TextButton(
                           onPressed: () => Navigator.push(

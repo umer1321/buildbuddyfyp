@@ -1,4 +1,3 @@
-// lib/widgets/auth_success_animation.dart
 import 'package:flutter/material.dart';
 
 class AuthSuccessAnimation extends StatefulWidget {
@@ -19,12 +18,13 @@ class _AuthSuccessAnimationState extends State<AuthSuccessAnimation>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _checkAnimation;
+  late Animation<double> _bounceAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1800),
       vsync: this,
     );
 
@@ -46,6 +46,13 @@ class _AuthSuccessAnimationState extends State<AuthSuccessAnimation>
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.7, 1.0, curve: Curves.elasticOut),
+      ),
+    );
+
+    _bounceAnimation = Tween<double>(begin: 0.0, end: 1.2).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.7, 1.0, curve: Curves.bounceOut),
       ),
     );
 
@@ -73,21 +80,34 @@ class _AuthSuccessAnimationState extends State<AuthSuccessAnimation>
             return Transform.scale(
               scale: _scaleAnimation.value,
               child: Container(
-                width: 200,
-                height: 200,
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
                 child: Center(
                   child: FadeTransition(
                     opacity: _fadeAnimation,
                     child: Transform.scale(
                       scale: _checkAnimation.value,
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 100,
+                      child: Transform.rotate(
+                        angle: _checkAnimation.value * 0.2, // Slight rotation for dynamic effect
+                        child: BounceAnimation(
+                          bounceValue: _bounceAnimation.value,
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 110,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -97,6 +117,25 @@ class _AuthSuccessAnimationState extends State<AuthSuccessAnimation>
           },
         ),
       ),
+    );
+  }
+}
+
+class BounceAnimation extends StatelessWidget {
+  final double bounceValue;
+  final Widget child;
+
+  const BounceAnimation({
+    super.key,
+    required this.bounceValue,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.scale(
+      scale: bounceValue,
+      child: child,
     );
   }
 }

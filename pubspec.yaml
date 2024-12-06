@@ -48,6 +48,16 @@ dependencies:
   cloud_firestore: ^5.5.0
   flutter_chat_ui: ^1.6.15
   firebase_messaging: ^15.1.5
+  geolocator: ^10.0.1
+  google_maps_flutter: ^2.1.5
+  geocoding: ^2.0.5
+  latlong2: ^0.8.1
+  flutter_map: ^4.0.0
+  permission_handler: ^10.0.0
+
+
+
+
 
 
 

@@ -1,15 +1,185 @@
 import 'package:flutter/material.dart';
 
 class VendorDashboard extends StatelessWidget {
-  const VendorDashboard({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Vendor Dashboard')),
-      body: const Center(
-        child: Text('Welcome to the Vendor Dashboard!'),
+      appBar: AppBar(
+        title: Text('Vendor Dashboard'),
+        backgroundColor: Colors.teal,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // Go back
+          },
+        ),
+      ),
+      body: Stack(
+        children: [
+          // Background Circles
+          Positioned(
+            bottom: -150,
+            left: -100,
+            child: Container(
+              width: 400,
+              height: 350,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -270,
+            right: -150,
+            child: Container(
+              width: 500,
+              height: 450,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF1a237e),
+              ),
+            ),
+          ),
+
+          // Grid of Cards
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: [
+                _buildDashboardCard(
+                  context,
+                  title: 'Manage Products',
+                  icon: Icons.inventory,
+                  color: Colors.blue,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/manage-products');
+                  },
+                ),
+                _buildDashboardCard(
+                  context,
+                  title: 'Orders',
+                  icon: Icons.shopping_cart,
+                  color: Colors.orange,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/vendor-orders');
+                  },
+                ),
+                _buildDashboardCard(
+                  context,
+                  title: 'Invoices',
+                  icon: Icons.receipt_long,
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/vendor-invoices');
+                  },
+                ),
+                _buildDashboardCard(
+                  context,
+                  title: 'Messages',
+                  icon: Icons.message,
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/vendor-messages');
+                  },
+                ),
+                _buildDashboardCard(
+                  context,
+                  title: 'Ratings & Reviews',
+                  icon: Icons.star_rate,
+                  color: Colors.redAccent,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/vendor-reviews');
+                  },
+                ),
+
+                // New Cards for Analytics, Notifications, and Support
+                _buildDashboardCard(
+                  context,
+                  title: 'Analytics',
+                  icon: Icons.bar_chart,
+                  color: Colors.indigo,
+                  onTap: () {
+                    // Navigate to the analytics screen
+                    Navigator.pushNamed(context, '/vendor-analytics');
+                  },
+                ),
+                _buildDashboardCard(
+                  context,
+                  title: 'Notifications',
+                  icon: Icons.notifications,
+                  color: Colors.yellow,
+                  onTap: () {
+                    // Navigate to notifications
+                    Navigator.pushNamed(context, '/vendor-notifications');
+                  },
+                ),
+                _buildDashboardCard(
+                  context,
+                  title: 'Support',
+                  icon: Icons.help_outline,
+                  color: Colors.deepOrange,
+                  onTap: () {
+                    // Navigate to the support page
+                    Navigator.pushNamed(context, '/vendor-support');
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard(
+      BuildContext context, {
+        required String title,
+        required IconData icon,
+        required Color color,
+        required VoidCallback onTap,
+      }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 48, color: color),
+              SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
+
+
+
+
+
+
+
+
+

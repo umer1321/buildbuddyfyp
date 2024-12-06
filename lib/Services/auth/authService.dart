@@ -242,71 +242,91 @@ class AuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
-  // Sign in with email and password with enhanced validation
+  // Add the new email verification status update method
+  Future<void> updateEmailVerificationStatus(String userId, bool isVerified, UserRole? role)async{
+   try{
+     if(role == null){
+       throw Exception('User role is required for updating email verification status');
+      }
+     await _database.child('user/${role.name}/$userId').update({
+       'emailVerified': isVerified,
+     });
+     if (isVerified && _requiresEmailVerification(role)) {
+       await _database
+           .child('user/${role.name}/$userId')
+           .update({'status': 'active'});
+     }
+    }catch(e){
+     print('Error updating email verification status: $e');
+     Fluttertoast.showToast(msg: 'Error updating email verification status');
+     throw Exception('Failed to update email verification status');
+    }
+   }
+
+
+
+
+
   Future<UserLoginResponse> signInWithEmailAndPassword(UserCredentials credentials) async {
     try {
-      // Validate input before attempting authentication
+      // Input validation
       if (credentials.email.isEmpty || credentials.password.isEmpty) {
+        print('Login failed: Empty email or password');
         return UserLoginResponse.error(
           'Please provide both email and password',
           'invalid-input',
         );
       }
 
+      print('Attempting Firebase auth...');
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: credentials.email.trim(),
         password: credentials.password,
       );
+      print('Firebase auth successful, getting user data...');
 
-      // Get user role and data with timeout
+      // Get user data
       final userData = await _getUserData(userCredential.user!.uid)
           .timeout(const Duration(seconds: 10));
 
       if (userData == null) {
-        await _auth.signOut(); // Sign out if user data not found
+        print('Login failed: User profile not found');
+        await _auth.signOut();
         return UserLoginResponse.error(
           'User profile not found. Please contact support.',
           'profile-not-found',
         );
       }
 
-      // Show a toast with the user's role
-      Fluttertoast.showToast(
-        msg: "Role selected: ${userData.role.name}", // Assuming `role` is an enum
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.black,
-        textColor: Colors.white,
-      );
-
-      // Update last login timestamp
-      await _updateUserLastLogin(userData);
-
-      // Check if email is verified for sensitive roles
+      // Email verification check
       if (_requiresEmailVerification(userData.role) && !userData.emailVerified) {
+        print('Login failed: Email not verified for role ${userData.role}');
         return UserLoginResponse.error(
           'Please verify your email before logging in.',
           'email-not-verified',
         );
       }
 
-      return UserLoginResponse.success(userData, message: '');
+      print('Login successful for role: ${userData.role}');
+      return UserLoginResponse.success(userData, message: 'Login successful');
 
     } on FirebaseAuthException catch (e) {
+      print('FirebaseAuthException: ${e.code} - ${e.message}');
       return _handleFirebaseAuthError(e);
     } on TimeoutException {
+      print('Login failed: Timeout getting user data');
       return UserLoginResponse.error(
         'Connection timeout. Please try again.',
         'timeout',
       );
     } catch (e) {
+      print('Unexpected error during login: ${e.toString()}');
       return UserLoginResponse.error(
         'An unexpected error occurred.',
         e.toString(),
       );
     }
   }
-
   // Enhanced registration with additional validation
   Future<UserLoginResponse> registerUser(RegisterUserData registerData) async {
     try {
@@ -336,16 +356,7 @@ class AuthService {
         await userCredential.user!.sendEmailVerification();
       }
 
-     /* final userData = UserData(
-        uid: userCredential.user!.uid,
-        email: registerData.email.trim(),
-        role: registerData.role,
-        emailVerified: userCredential.user!.emailVerified,
-        provider: 'password',
-        createdAt: DateTime.now(),
-        lastLogin: DateTime.now(),
-        status: _requiresEmailVerification(registerData.role) ? 'pending' : 'active',
-      );*/
+
 
       // Inside AuthService.registerUser
       final userData = UserData(

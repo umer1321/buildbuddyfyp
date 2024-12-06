@@ -18,47 +18,47 @@ class ArchitectDashboard extends StatelessWidget {
           children: [
             _buildDashboardCard(
               context,
-              title: 'Project Submissions',
+              title: 'View Project Plans',
               icon: Icons.assignment,
               color: Colors.blue,
               onTap: () {
-                Navigator.pushNamed(context, '/project-submissions');
+                Navigator.pushNamed(context, '/view-project-plans');
               },
             ),
             _buildDashboardCard(
               context,
-              title: 'Task Assignments',
-              icon: Icons.task,
+              title: 'Consult with Homeowners',
+              icon: Icons.person_add,
               color: Colors.orange,
               onTap: () {
-                Navigator.pushNamed(context, '/task-assignments');
+                Navigator.pushNamed(context, '/consult-homeowners');
               },
             ),
             _buildDashboardCard(
               context,
-              title: 'Material Consultations',
-              icon: Icons.design_services,
+              title: 'Review Contractor Tasks',
+              icon: Icons.check_circle,
               color: Colors.green,
               onTap: () {
-                Navigator.pushNamed(context, '/material-consultations');
+                Navigator.pushNamed(context, '/review-contractor-tasks');
+              },
+            ),
+            _buildDashboardCard(
+              context,
+              title: 'Send Feedback & Approvals',
+              icon: Icons.feedback,
+              color: Colors.purple,
+              onTap: () {
+                Navigator.pushNamed(context, '/send-feedback');
               },
             ),
             _buildDashboardCard(
               context,
               title: 'Messages',
               icon: Icons.message,
-              color: Colors.purple,
+              color: Colors.pinkAccent,
               onTap: () {
                 Navigator.pushNamed(context, '/architect-messages');
-              },
-            ),
-            _buildDashboardCard(
-              context,
-              title: 'Reviews & Feedback',
-              icon: Icons.feedback,
-              color: Colors.redAccent,
-              onTap: () {
-                Navigator.pushNamed(context, '/reviews-feedback');
               },
             ),
           ],

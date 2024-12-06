@@ -82,59 +82,35 @@ class _SignInScreenState extends State<SignInScreen> {
 
 
 
-  /* // Improved sign in handler with proper error handling
+
   void _handleSignIn() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
+      print("Attempting sign in...");
       final success = await _authController.signInWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-      if (success && mounted) {
-        // Clear any previous error messages
-        _authController.clearError();
 
-        final userData = _authController.currentUser.value;
-        if (userData != null) {
-          if (_rememberMe) {
-            // Implement remember me functionality
-            await _saveUserCredentials();
-          }
-          _navigateBasedOnRole(userData.role);
+      if (success) {
+        print("Login Successful");
+        print("User data: ${_authController.currentUser.value}");
+      } else {
+        print("Login Failed");
+        if (_authController.errorMessage.value.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_authController.errorMessage.value),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
+
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-*/
-
-  void _handleSignIn() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final success = await _authController.signInWithEmail(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-
       if (success && mounted) {
         // Clear any previous error messages
         _authController.clearError();
@@ -175,24 +151,16 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-
-  // Improved Google sign-in handler with error handling
   Future<void> _handleGoogleSignIn() async {
     try {
       setState(() => _isLoading = true);
 
-      /*final selectedRole = await _showRoleSelectionDialog();
-      if (selectedRole == null) {
-        setState(() => _isLoading = false);
-        return;
-      }*/
+      // Show role selection dialog for Google sign-in
       final selectedRole = await _showRoleSelectionDialog();
-      print('Selected Role: $selectedRole');
       if (selectedRole == null) {
         setState(() => _isLoading = false);
         return;
       }
-
 
       final success = await _authController.signInWithGoogle(selectedRole);
 
@@ -252,9 +220,9 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
 
+
   void _navigateBasedOnRole(UserRole role) {
     if (!mounted) return;
-
     print("Navigating based on role: ${role.toString()}");
 
     Widget dashboard;
@@ -269,35 +237,7 @@ class _SignInScreenState extends State<SignInScreen> {
         dashboard = ArchitectDashboard();
         break;
       case UserRole.vendor:
-        dashboard = const VendorDashboard();
-        break;
-      case UserRole.admin:
-        dashboard = const AdminDashboard();
-        break;
-      default:
-        dashboard = const HomeOwnerDashboard(); // Fallback
-    }
-
-    Get.offAll(() => dashboard); // Use GetX for navigation
-  }
-
-  /*// Improved navigation based on role
-  void _navigateBasedOnRole(UserRole role) {
-    if (!mounted) return;
-
-    Widget dashboard;
-    switch (role) {
-      case UserRole.homeowner:
-        dashboard = const HomeOwnerDashboard();
-        break;
-      case UserRole.contractor:
-        dashboard = const ContractorDashboard();
-        break;
-      case UserRole.architect:
-        dashboard = const ArchitectDashboard();
-        break;
-      case UserRole.vendor:
-        dashboard = const VendorDashboard();
+        dashboard = VendorDashboard();
         break;
       case UserRole.admin:
         dashboard = const AdminDashboard();
@@ -307,10 +247,8 @@ class _SignInScreenState extends State<SignInScreen> {
     }
 
     Get.offAll(() => dashboard);
-
   }
-*/
-  // Helper method to save user credentials for Remember Me
+
   Future<void> _saveUserCredentials() async {
     // Implement secure credential storage
     // Note: Use secure storage like flutter_secure_storage in production
@@ -400,7 +338,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       const SizedBox(height: 30),
                       InputField(
                         controller: _emailController,
-                        hintText: 'Email',
+                        hintText: 'Email(e.g.,umer@gmail.com)',
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
                         validator: _validateEmail,

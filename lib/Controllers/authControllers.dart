@@ -264,31 +264,21 @@ extension UserRoleExtension on UserRole {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/////////
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-
 import 'package:buildbuddyfyp/Services/auth/authService.dart';
 import 'package:buildbuddyfyp/Models/userModels.dart';
 import 'package:flutter/material.dart';
-
-
+import '../Views/DashBoard/Admin.dart';
+import '../Views/DashBoard/Architect.dart';
+import '../Views/DashBoard/Constructor.dart';
+import '../Views/DashBoard/HomeOwner.dart';
+import '../Views/DashBoard/Vendor.dart';
 
 class AuthController extends GetxController {
   final AuthService _authService = AuthService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Observable values
   final Rx<UserData?> currentUser = Rx<UserData?>(null);
@@ -304,83 +294,44 @@ class AuthController extends GetxController {
     });
   }
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  /*Future<bool> signInWithEmail(String email, String password) async {
-    try {
-      // Sign in with Firebase Authentication
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      // Retrieve user data from Firestore
-      DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore
-          .instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .get();
-
-      if (userDoc.exists) {
-        Map<String, dynamic> data = userDoc.data()!;
-        UserRole role = UserRole.values.firstWhere(
-              (e) => e.toString() == 'UserRole.${data['role']}',
-          orElse: () => UserRole.homeowner, // Default role if not found
-        );
-
-
-
-        // Update the current user with UserData instead of UserModel
-        currentUser.value = UserData(
-          uid: userCredential.user!.uid,
-          email: userCredential.user!.email ?? '',
-          role: role,
-          displayName: data['displayName'],
-          photoURL: data['photoURL'],
-          phoneNumber: data['phoneNumber'],
-          emailVerified: userCredential.user!.emailVerified,
-          provider: userCredential.user!.providerData.first.providerId,
-          createdAt: (userDoc.data()?['createdAt'] != null)
-              ? DateTime.parse(data['createdAt'])
-              : DateTime.now(),
-          lastLogin: DateTime.now(),
-          status: data['status'] ?? 'active',
-        );
-        return true;
-      } else {
-        print('User document not found for UID: ${userCredential.user!.uid}');
-        return false;
-      }
-    } catch (e) {
-      print('Error during sign-in: $e');
-      return false;
-    }
-  }*/
-
-
-  // Email Sign In
-  Future<bool> signInWithEmail(String email, String password) async {
+  // Updated email verification status method to match AuthService
+  Future<void> updateEmailVerificationStatus() async {
     try {
       isLoading.value = true;
-      errorMessage.value = '';
+      final user = _auth.currentUser;
+      if (user != null && currentUser.value?.role != null) {
+        await user.reload();
+        await _authService.updateEmailVerificationStatus(
+          user.uid,
+          user.emailVerified,
+          currentUser.value?.role,
+        );
 
-      final credentials = UserCredentials(
-        email: email,
-        password: password,
-      );
+        if (currentUser.value != null) {
+          currentUser.value = currentUser.value!.copyWith(
+            emailVerified: user.emailVerified,
+          );
+        }
 
-      final response = await _authService.signInWithEmailAndPassword(credentials);
-
-      if (response.success) {
-        currentUser.value = response.userData;
-        return true;
-      } else {
-        errorMessage.value = response.message;
-        return false;
+        if (user.emailVerified) {
+          Get.snackbar(
+            'Email Verified',
+            'Your email has been verified',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
+        }
       }
     } catch (e) {
-      errorMessage.value = 'An unexpected error occurred';
-      return false;
+      errorMessage.value = 'Failed to update email verification status';
+      Get.snackbar(
+        'Error',
+        'Failed to update email verification status',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -390,8 +341,6 @@ class AuthController extends GetxController {
   Future<bool> registerUser({
     required String email,
     required String password,
-   // required String displayName,
-    //required String phoneNumber,
     required UserRole role,
   }) async {
     try {
@@ -401,8 +350,6 @@ class AuthController extends GetxController {
       final registerData = RegisterUserData(
         email: email,
         password: password,
-      //  displayName: displayName,
-        //phoneNumber: phoneNumber,
         role: role,
       );
 
@@ -417,6 +364,7 @@ class AuthController extends GetxController {
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
+        _navigateBasedOnRole(response.userData?.role);
         return true;
       } else {
         errorMessage.value = response.message;
@@ -437,7 +385,41 @@ class AuthController extends GetxController {
     }
   }
 
-  // Google Sign In
+  Future<bool> signInWithEmail(String email, String password) async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+
+      final credentials = UserCredentials(
+        email: email,
+        password: password,
+      );
+
+      final response = await _authService.signInWithEmailAndPassword(credentials);
+
+      if (response.success) {
+        currentUser.value = response.userData;
+        _navigateBasedOnRole(response.userData?.role);
+        return true;
+      } else {
+        errorMessage.value = response.message;
+        Get.snackbar(
+          'Error',
+          response.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    } catch (e) {
+      errorMessage.value = 'An unexpected error occurred';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<bool> signInWithGoogle(UserRole role) async {
     try {
       isLoading.value = true;
@@ -447,6 +429,9 @@ class AuthController extends GetxController {
 
       if (response.success) {
         currentUser.value = response.userData;
+        if (currentUser.value != null) {
+          _navigateBasedOnRole(currentUser.value!.role);
+        }
         return true;
       } else {
         errorMessage.value = response.message;
@@ -467,13 +452,412 @@ class AuthController extends GetxController {
     }
   }
 
+  void _navigateBasedOnRole(UserRole? role) {
+    if (role == null) {
+      Get.snackbar(
+        'Error',
+        'Role is null. Please log in again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    Widget? dashboard;
+    try {
+      switch (role) {
+        case UserRole.homeowner:
+          dashboard = const HomeOwnerDashboard();
+          break;
+        case UserRole.contractor:
+          dashboard = ContractorDashboard();
+          break;
+        case UserRole.architect:
+          dashboard = ArchitectDashboard();
+          break;
+        case UserRole.vendor:
+          dashboard = VendorDashboard();
+          break;
+        case UserRole.admin:
+          dashboard = const AdminDashboard();
+          break;
+      }
+
+      if (dashboard != null) {
+        Get.offAll(
+              () => dashboard!,
+          transition: Transition.fade,
+          duration: const Duration(milliseconds: 500),
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Navigation Error',
+        'Error navigating to dashboard. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      isLoading.value = true;
+      await _authService.signOut();
+      currentUser.value = null;
+      Get.offAllNamed('/stakeholder');
+    } catch (e) {
+      errorMessage.value = 'Sign out failed';
+      Get.snackbar(
+        'Error',
+        'Failed to sign out',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> checkCurrentUser() async {
+    try {
+      isLoading.value = true;
+      final userData = await _authService.getCurrentUserData();
+      currentUser.value = userData;
+    } catch (e) {
+      errorMessage.value = 'Failed to fetch user data';
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  bool get isAuthenticated => currentUser.value != null;
+  bool get isEmailVerified => currentUser.value?.emailVerified ?? false;
+  bool get requiresEmailVerification =>
+      currentUser.value != null &&
+          [UserRole.contractor, UserRole.architect, UserRole.vendor]
+              .contains(currentUser.value!.role);
+
+  void clearError() {
+    errorMessage.value = '';
+  }
+}
+
+
+
+
+
+//////
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
+
+import 'package:buildbuddyfyp/Services/auth/authService.dart';
+import 'package:buildbuddyfyp/Models/userModels.dart';
+import 'package:flutter/material.dart';
+
+import '../Views/DashBoard/Admin.dart';
+import '../Views/DashBoard/Architect.dart';
+import '../Views/DashBoard/Constructor.dart';
+import '../Views/DashBoard/HomeOwner.dart';
+import '../Views/DashBoard/Vendor.dart';
+
+
+
+class AuthController extends GetxController {
+  final AuthService _authService = AuthService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Observable values
+  final Rx<UserData?> currentUser = Rx<UserData?>(null);
+  final RxBool isLoading = false.obs;
+  final RxString errorMessage = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Listen to auth state changes
+    _authService.userDataStream.listen((userData) {
+      currentUser.value = userData;
+    });
+  }
+
+
+// Add the new email verification status update method
+Future<void> updateEmailVerificationStatus() async {
+    try{
+      isLoading.value = true;
+      final user = _auth.currentUser;
+      if(user != null){
+        await user.reload();
+       await _authService.updateEmailVerificationStatus(
+         userId: user.uid,
+         isEmailVerified:user.emailVerified,
+         userRole: currentUser.value?.role,
+       );
+       if(currentUser.value != null){
+         currentUser.value = currentUser.value!.copyWith(
+           emailVerified: user.emailVerified,
+         );
+       }
+       if(user.emailVerified){
+         Get.snackbar(
+           'Email Verified',
+           'Your email has been verified',
+           snackPosition: SnackPosition.BOTTOM,
+           backgroundColor: Colors.green,
+           colorText: Colors.white,
+         );
+       }
+      }
+    }catch(e) {
+      errorMessage.value = 'Failed to update email verification status';
+      Get.snackbar(
+        'Error',
+        'Failed to update email verification status',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }finally{
+      isLoading.value = false;
+    }
+}
+
+
+
+// Registration
+  Future<bool> registerUser({
+    required String email,
+    required String password,
+    // required String displayName,
+    //required String phoneNumber,
+    required UserRole role,
+  }) async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+
+      final registerData = RegisterUserData(
+        email: email,
+        password: password,
+        //  displayName: displayName,
+        //phoneNumber: phoneNumber,
+        role: role,
+      );
+
+      final response = await _authService.registerUser(registerData);
+
+      if (response.success) {
+        currentUser.value = response.userData;
+        Get.snackbar(
+          'Success',
+          response.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        _navigateBasedOnRole(response.userData?.role);
+
+        return true;
+      } else {
+        errorMessage.value = response.message;
+        Get.snackbar(
+          'Error',
+          response.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    } catch (e) {
+      errorMessage.value = 'Registration failed';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+
+
+
+  Future<bool> signInWithEmail(String email, String password) async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+
+      final credentials = UserCredentials(
+        email: email,
+        password: password,
+      );
+
+      final response = await _authService.signInWithEmailAndPassword(credentials);
+
+      if (response.success) {
+        currentUser.value = response.userData;
+        _navigateBasedOnRole(response.userData?.role);
+
+        return true;
+      } else {
+        errorMessage.value = response.message;
+        return false;
+      }
+    } catch (e) {
+      errorMessage.value = 'An unexpected error occurred';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+
+
+  Future<bool> signInWithGoogle(UserRole role) async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+
+      // Trigger Google Sign-In
+      final response = await _authService.signInWithGoogle(role);
+
+      if (response.success) {
+        currentUser.value = response.userData;
+
+        // After successful sign-in, the user is redirected based on their role
+        if (currentUser.value != null) {
+          _navigateBasedOnRole(currentUser.value!.role);
+        }
+
+        return true;
+      } else {
+        errorMessage.value = response.message;
+        Get.snackbar(
+          'Error',
+          response.message,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    } catch (e) {
+      errorMessage.value = 'Google sign in failed';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+// Enhanced navigation function
+  void _navigateBasedOnRole(UserRole? role) {
+    print("======= Navigation Debug =======");
+    print("Attempting navigation with role: $role");
+
+    if (role == null) {
+      print("Error: Role is null");
+      Get.snackbar(
+        'Error',
+        'Role is null. Please log in again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    print("Role enum value: ${role.toString()}");
+    print("Role name: ${role.name}");
+
+    Widget? dashboard;
+    try {
+      // Navigate to the appropriate dashboard based on the user's role
+      switch (role) {
+        case UserRole.homeowner:
+          print("Creating HomeOwner Dashboard");
+          dashboard = const HomeOwnerDashboard();
+          break;
+        case UserRole.contractor:
+          print("Creating Contractor Dashboard");
+          dashboard = ContractorDashboard();
+          break;
+        case UserRole.architect:
+          print("Creating Architect Dashboard");
+          dashboard = ArchitectDashboard();
+          break;
+        case UserRole.vendor:
+          print("Creating Vendor Dashboard");
+          dashboard = VendorDashboard();
+          break;
+        case UserRole.admin:
+          print("Creating Admin Dashboard");
+          dashboard = const AdminDashboard();
+          break;
+        default:
+          print("Warning: Using default HomeOwner Dashboard");
+          dashboard = const HomeOwnerDashboard();
+      }
+
+      if (dashboard != null) {
+        print("Navigating to dashboard using Get.offAll()");
+        Get.offAll(
+              () => dashboard!,
+          transition: Transition.fade,
+          duration: const Duration(milliseconds: 500),
+        );
+        print("Navigation command executed");
+      } else {
+        print("Error: Dashboard widget is null");
+        throw Exception("Dashboard widget is null");
+      }
+    } catch (e) {
+      print("Error during navigation: $e");
+      Get.snackbar(
+        'Navigation Error',
+        'Error navigating to dashboard. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+    print("======= End Navigation Debug =======");
+  }
+
+// Add this check in your AuthController
+  void verifyUserRole() {
+    final user = currentUser.value;
+    print("Current user: $user");
+    print("User role: ${user?.role}");
+    if (user?.role != null) {
+      print("Role type: ${user?.role.runtimeType}");
+    }
+  }
+
+
   // Sign Out
   Future<void> signOut() async {
     try {
       isLoading.value = true;
       await _authService.signOut();
       currentUser.value = null;
-      Get.offAllNamed('/login'); // Navigate to login screen
+      Get.offAllNamed('/stakeholder'); // Navigate to login screen
     } catch (e) {
       errorMessage.value = 'Sign out failed';
       Get.snackbar(
@@ -543,6 +927,7 @@ class AuthController extends GetxController {
   }
 }
 
+*/
 
 
 
