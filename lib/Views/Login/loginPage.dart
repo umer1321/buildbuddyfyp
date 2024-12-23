@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:buildbuddyfyp/Views/DashBoard/HomeOwner.dart';
 import 'package:buildbuddyfyp/Views/Login/signUp.dart';
@@ -155,6 +154,8 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       setState(() => _isLoading = true);
 
+      //final success = await _authController.signInWithGoogle();
+
       // Show role selection dialog for Google sign-in
       final selectedRole = await _showRoleSelectionDialog();
       if (selectedRole == null) {
@@ -188,6 +189,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
 
 
+
   Future<UserRole?> _showRoleSelectionDialog() async {
     return showDialog<UserRole>(
       context: context,
@@ -218,6 +220,7 @@ class _SignInScreenState extends State<SignInScreen> {
       },
     );
   }
+
 
 
 

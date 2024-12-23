@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:buildbuddyfyp/Models/userModels.dart';
 import 'package:buildbuddyfyp/Views/Login/startedScreen.dart';
 import 'package:get/get.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class StakeholderSelection extends StatefulWidget {
   final Function(UserRole)? onRoleSelected;
@@ -49,178 +50,208 @@ class _StakeholderSelectionState extends State<StakeholderSelection> {
     },
   ];
 
+  // Controller for admin code input
+  final TextEditingController _adminCodeController = TextEditingController();
+
+  // Validate admin code from Firebase
+  Future<bool> validateAdminCode(String enteredCode) async {
+    try {
+      final DatabaseReference ref = FirebaseDatabase.instance.ref('admin_code');
+      final DataSnapshot snapshot = await ref.get();
+
+      if (snapshot.exists) {
+        String storedCode = snapshot.value.toString().trim();
+        String enteredTrimmedCode = enteredCode.trim();
+
+        // Debugging output to check the values
+        print("Stored Code: '$storedCode'");
+        print("Entered Code: '$enteredTrimmedCode'");
+
+        return storedCode == enteredTrimmedCode;
+      } else {
+        print("Admin code not found in database");
+        return false;
+      }
+    } catch (error) {
+      print("Error validating admin code: $error");
+      return false;
+    }
+  }
 
   void _handleStakeholderTap(BuildContext context, UserRole role) async {
-    // Notify parent about role selection (optional)
     if (widget.onRoleSelected != null) {
       widget.onRoleSelected!(role);
     }
 
-    // Navigate to GetStartedScreen with the selected role using Get.toNamed
-    Get.toNamed(
-      '/get-started',
-      arguments: role.name,
-    );
-  }
- /* void _handleStakeholderTap(BuildContext context, UserRole role) {
-    String routeName;
-    switch (role) {
-      case UserRole.homeowner:
-        routeName = '/homeowner-dashboard';
-        break;
-      case UserRole.contractor:
-        routeName = '/contractor-dashboard';
-        break;
-      case UserRole.architect:
-        routeName = '/architect-dashboard';
-        break;
-      case UserRole.vendor:
-        routeName = '/vendor-dashboard';
-        break;
-      case UserRole.admin:
-        routeName = '/admin-dashboard';
-        break;
-    }
+    if (role == UserRole.admin) {
+      final adminCode = await showDialog<String>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Enter Admin Code"),
+            content: TextField(
+              controller: _adminCodeController,
+              decoration: const InputDecoration(hintText: "Admin Code"),
+              keyboardType: TextInputType.number,
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  String enteredCode = _adminCodeController.text;
+                  Navigator.of(context).pop(enteredCode);
+                },
+                child: const Text('OK'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(null); // Dismiss without action
+                },
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      );
 
-    // Navigate to the corresponding dashboard
-    Get.toNamed(routeName);
-  }*/
-  /*void _handleStakeholderTap(BuildContext context, UserRole role) {
-    String? routeName;
+      if (adminCode != null && adminCode.isNotEmpty) {
+        bool isValid = await validateAdminCode(adminCode);
 
-    switch (role) {
-      case UserRole.homeowner:
-        routeName = '/homeowner-dashboard';
-        break;
-      case UserRole.contractor:
-        routeName = '/contractor-dashboard';
-        break;
-      case UserRole.architect:
-        routeName = '/architect-dashboard';
-        break;
-      case UserRole.vendor:
-        routeName = '/vendor-dashboard';
-        break;
-      case UserRole.admin:
-        routeName = '/admin-dashboard';
-        break;
-    }
-
-    if (routeName != null) {
-      print('Navigating to: $routeName for role: ${role.name}');
-      Get.toNamed(routeName);
+        if (isValid) {
+          Get.toNamed('/adminSignIn'); // Or navigate to Admin Dashboard
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Invalid Admin Code")),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Admin code cannot be empty")),
+        );
+      }
     } else {
-      print('No route found for role: ${role.name}');
+      Get.toNamed(
+        '/get-started',
+        arguments: role.name,
+      );
     }
-  }*/
-
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-       children: [
-         Positioned(
-           top: -55,
-           right: -90,
-           child: Container(
-             width: 200,
-             height: 150,
-             decoration: const BoxDecoration(
-               shape: BoxShape.circle,
-               color: Colors.blue,
-             ),
-           ),
-         ),
-         Positioned(
-           top: -55,
-           right: 50,
-           child: Container(
-             width: 200,
-             height: 150,
-             decoration: const BoxDecoration(
-               shape: BoxShape.circle,
-               color: Color(0xFF1a237e),
-             ),
-           ),
-         ),
-
-         Positioned(
-           bottom: -150,
-           left: -100,
-           child: Container(
-             width: 400,
-             height: 300,
-             decoration: const BoxDecoration(
-               shape: BoxShape.circle,
-               color: Colors.blue,
-             ),
-           ),
-         ),
-         Positioned(
-           bottom: -270,
-           right: -150,
-           child: Container(
-             width: 500,
-             height: 400,
-             decoration: const BoxDecoration(
-               shape: BoxShape.circle,
-               color: Color(0xFF1a237e),
-             ),
-           ),
-         ),
-
-
-
-      SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              Text(
-                'Welcome to Build Buddy',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Select your role to continue',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 32),
-              Expanded(
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: stakeholders.length,
-                  itemBuilder: (context, index) {
-                    final stakeholder = stakeholders[index];
-                    return _StakeholderCard(
-                      icon: stakeholder['icon'] as IconData,
-                      title: stakeholder['title'] as String,
-                      description: stakeholder['description'] as String,
-                      onTap: () => _handleStakeholderTap(
-                        context,
-                        stakeholder['role'] as UserRole,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Get.offAllNamed('/welcome');
+          },
         ),
+        title: const Text(
+          'Select Your Role',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.blueAccent,
+        elevation: 2,
       ),
-
+      body: Stack(
+        children: [
+          Positioned(
+            top: -55,
+            right: -90,
+            child: Container(
+              width: 200,
+              height: 150,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue,
+              ),
+            ),
+          ),
+          Positioned(
+            top: -55,
+            right: 50,
+            child: Container(
+              width: 200,
+              height: 150,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF1a237e),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -150,
+            left: -100,
+            child: Container(
+              width: 400,
+              height: 300,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -270,
+            right: -150,
+            child: Container(
+              width: 500,
+              height: 400,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF1a237e),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 24),
+                  Text(
+                    'Welcome to Build Buddy',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Select your role to continue',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Expanded(
+                    child: GridView.builder(
+                      gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.85,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: stakeholders.length,
+                      itemBuilder: (context, index) {
+                        final stakeholder = stakeholders[index];
+                        return _StakeholderCard(
+                          icon: stakeholder['icon'] as IconData,
+                          title: stakeholder['title'] as String,
+                          description: stakeholder['description'] as String,
+                          onTap: () => _handleStakeholderTap(
+                            context,
+                            stakeholder['role'] as UserRole,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -286,40 +317,3 @@ class _StakeholderCard extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-/*
- /*appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          *//*child: Image.asset(
-            'assets/logo.png', // Replace with your logo path
-            height: 40,
-          ),*//*
-        ),
-      ),*/
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

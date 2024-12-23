@@ -2,8 +2,12 @@ import 'package:get/get.dart';
 
 // Core App Screens
 import '../Views/DashBoard/Constructor.dart';
-import '../views/Login/boardingscreen.dart';
+import '../Views/DashBoard/Vendor/Ratings&ReviewsScreen.dart';
+import '../Views/DashBoard/Vendor/messageScreen.dart';
+import '../Views/Login/boardingscreen.dart';
+
 import '../views/Login/startedScreen.dart';
+import '../views/Login/welcomeScreen.dart';
 import '../views/Login/loginPage.dart';
 import '../views/Login/signUp.dart';
 import '../views/Login/forgotPassword.dart';
@@ -42,23 +46,28 @@ import '../views/DashBoard/Architect/viewProjectPlans.dart';
 import '../views/DashBoard/Architect/reviewContractorTasks.dart';
 import '../views/DashBoard/Architect/SendFeedback&Approvals.dart';
 import '../views/DashBoard/Architect/ConsultWithHomeowners.dart';
-import '../views/DashBoard/Architect/ViewProjectPlans.dart';
+
 
 // Vendor Screens
 import '../views/DashBoard/Vendor/ordersScreen.dart';
 import '../views/DashBoard/Vendor/invoicesScreen.dart';
-import '../views/DashBoard/Vendor/Ratings&ReviewsScreen.dart';
 import '../views/DashBoard/Vendor/manageProductsScreen.dart';
-import '../views/DashBoard/Vendor/messageScreen.dart';
-import '../views/DashBoard/Vendor/analytics.dart'; // New Screen
-import '../views/DashBoard/Vendor/notifications.dart'; // New Screen
-import '../views/DashBoard/Vendor/support.dart'; // New Screen
+import '../views/DashBoard/Vendor/analytics.dart';
+import '../views/DashBoard/Vendor/notifications.dart';
+import '../views/DashBoard/Vendor/support.dart';
+
+//Admin Screens
+import '../Views/DashBoard/Admin.dart';
+import '../views/Login/AdminSignUp.dart';
+
 
 class AppRoutes {
   static final getPages = [
     // Core App Screens
-    GetPage(name: '/', page: () => const SplashScreen()),
     GetPage(name: '/boarding', page: () => const BoardingScreen()),
+    GetPage(name: '/', page: () => SplashScreen()),
+    GetPage(name: '/welcome', page: () => const WelcomeScreen()),
+
     GetPage(name: '/get-started', page: () => const GetStartedScreen(), transition: Transition.fadeIn),
     GetPage(name: '/sign-in', page: () => const SignInScreen()),
     GetPage(name: '/sign-up', page: () => const SignUpScreen()),
@@ -66,7 +75,13 @@ class AppRoutes {
 
     // Stakeholder Selection
     GetPage(name: '/stakeholder', page: () => const StakeholderSelection()),
-    GetPage(name: '/admin', page: () => const AdminDashboard()),
+
+    ///
+    /// Admin Routes
+    GetPage(name: '/adminSignIn', page: () => const AdminSignInScreen()),
+   // GetPage(name: '/adminDashboard', page: () => const AdminDashboard()),
+    ///
+
 
     // HomeOwner Dashboard
     GetPage(name: '/homeowner-dashboard', page: () => const HomeOwnerDashboard(), transition: Transition.fadeIn),
@@ -90,10 +105,10 @@ class AppRoutes {
     // Architect Dashboard
     GetPage(name: '/architect-dashboard', page: () => ArchitectDashboard(), transition: Transition.fadeIn),
     GetPage(name: '/architect-messages', page: () => ArchitectMessagesScreen()),
-    GetPage(name: '/consult-homeowners', page: () => ConsultHomeownersScreen()), // New Route
-    GetPage(name: '/review-contractor-tasks', page: () => ReviewContractorTasksScreen()), // New Route
-    GetPage(name: '/send-feedback', page: () => SendFeedbackScreen()), // New Route
-   // GetPage(name: '/view-project-plans', page: () => ViewProjectPlansScreen()),
+    GetPage(name: '/consult-homeowners', page: () => ConsultHomeownersScreen()),
+    GetPage(name: '/review-contractor-tasks', page: () => ReviewContractorTasksScreen()),
+    GetPage(name: '/send-feedback', page: () => SendFeedbackScreen()),
+    GetPage(name: '/view-project-plans', page: () => ViewProjectPlansScreen()),
 
     // Vendor Dashboard
     GetPage(name: '/vendor-dashboard', page: () => VendorDashboard(), transition: Transition.fadeIn),
@@ -101,11 +116,13 @@ class AppRoutes {
     GetPage(name: '/vendor-payments', page: () => VendorInvoicesScreen()),
     GetPage(name: '/manage-products', page: () => ManageProductsScreen()),
     GetPage(name: '/vendor-invoices', page: () => VendorInvoicesScreen()),
+    GetPage(name: '/vendor-messages', page: () => VendorMessages()),
+    GetPage(name: '/vendor-reviews', page: () => ReviewVendorTasksScreen()),
 
     // New Vendor Screens
-    GetPage(name: '/vendor-analytics', page: () => VendorAnalyticsScreen()), // New Route
-    GetPage(name: '/vendor-notifications', page: () => VendorNotificationsScreen()), // New Route
-    GetPage(name: '/vendor-support', page: () => VendorSupportScreen()), // New Route
+    GetPage(name: '/vendor-analytics', page: () => VendorAnalyticsScreen()),
+    GetPage(name: '/vendor-notifications', page: () => VendorNotificationsScreen()),
+    GetPage(name: '/vendor-support', page: () => VendorSupportScreen()),
   ];
 }
 

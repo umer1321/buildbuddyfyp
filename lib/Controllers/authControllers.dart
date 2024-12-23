@@ -394,6 +394,7 @@ class AuthController extends GetxController {
         email: email,
         password: password,
       );
+      
 
       final response = await _authService.signInWithEmailAndPassword(credentials);
 

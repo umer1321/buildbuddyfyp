@@ -1,6 +1,3 @@
-
-
-
 import 'package:flutter/material.dart';
 
 class AuthSuccessAnimation extends StatefulWidget {
