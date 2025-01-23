@@ -1,15 +1,56 @@
+/*import 'package:buildbuddyfyp/Services/projects/projectService.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Ensure you have this for date formatting
+import 'package:intl/intl.dart';
+import '../../../Models/projectModel.dart';
 
 class MyProjectsDashboard extends StatefulWidget {
-  const MyProjectsDashboard({Key? key}) : super(key: key);
+  final String userId;
+  const MyProjectsDashboard({Key? key, required this.userId}) : super(key: key);
 
   @override
   _MyProjectsDashboardState createState() => _MyProjectsDashboardState();
+
 }
 
 class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
-  final List<Map<String, dynamic>> _allProjects = [
+  final ProjectService _projectService = ProjectService();
+  List<Project> _allProjects = [];
+  List<Project> _filteredProjects = [];
+  String? _selectedFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProjects();
+  }
+  Future<void> _fetchProjects() async {
+    try {
+      final projects = await _projectService.getProjectsForUser(widget.userId);
+      setState(() {
+        _allProjects = projects;
+        _filteredProjects = projects;
+      });
+    } catch (e) {
+      print("Error fetching projects: $e");
+    }
+  }
+
+  void _filterProjects(String? filter) {
+    setState(() {
+      _selectedFilter = filter;
+      if (filter == null || filter == 'All') {
+        _filteredProjects = _allProjects;
+      } else {
+        _filteredProjects = _allProjects
+            .where((project) =>
+        project.status.toString().split('.').last == filter)
+            .toList();
+      }
+    });
+  }
+
+
+ *//* final List<Map<String, dynamic>> _allProjects = [
     {
       'id': 'PRJ001',
       'title': 'Kitchen Renovation',
@@ -37,9 +78,9 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
       'progress': 0,
       'date': '2024-11-05'
     },
-  ];
+  ];*//*
 
-  String? _selectedFilter;
+  *//*String? _selectedFilter;
   List<Map<String, dynamic>> _filteredProjects = [];
 
   @override
@@ -47,7 +88,7 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
     super.initState();
     _filteredProjects = List.from(_allProjects);
   }
-
+*//*
   void _showFilterDialog() {
     showDialog(
       context: context,
@@ -80,7 +121,7 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
                     _filteredProjects = List.from(_allProjects);
                   } else {
                     _filteredProjects = _allProjects
-                        .where((project) => project['status'] == _selectedFilter)
+                        .where((project) => project.status== _selectedFilter)
                         .toList();
                   }
                 });
@@ -97,8 +138,16 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
       },
     );
   }
+  *//*void _deleteProject(String projectId) async {
+    try {
+      await _projectService.deleteProject(projectId);
+      _fetchProjects();
+    } catch (e) {
+      print('Error deleting project: $e');
+    }
+  }*//*
 
-  Color _getStatusColor(String status) {
+  *//*Color _getStatusColor(ProjectStatus status) {
     switch (status) {
       case 'In Progress':
         return Color(0xFF3498DB); // Bright Blue
@@ -109,7 +158,22 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
       default:
         return Color(0xFF95A5A6); // Gray
     }
+  }*//*
+  Color _getStatusColor(ProjectStatus status) {
+    switch (status) {
+      case ProjectStatus.ongoing:
+        return Colors.blue;
+      case ProjectStatus.completed:
+        return Colors.green;
+      case ProjectStatus.paused:
+        return Colors.orange;
+      case ProjectStatus.cancelled:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -266,14 +330,18 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
                           Container(
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: _getStatusColor(project['status']).withOpacity(0.1),
+                             // color: _getStatusColor(project['status']).withOpacity(0.1),
+                              color: _getStatusColor((project.status?.toString() ?? 'default') as ProjectStatus).withOpacity(0.1),
+
                               borderRadius: BorderRadius.circular(15),
                             ),
-                            child: Icon(
-                              project['icon'],
-                              color: _getStatusColor(project['status']),
+                            *//*child: Icon(
+                              //project['icon'],
+                             // project.icon as IconData,
+                              //color: _getStatusColor(project['status']),
+                              color: _getStatusColor(project.status as String),
                               size: 24,
-                            ),
+                            ),*//*
                           ),
                           SizedBox(width: 16),
                           Expanded(
@@ -281,8 +349,11 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  project['title'],
-                                  style: TextStyle(
+                                  //project['title'],
+                                 // project.status as String,
+                                project.status.toString().split('.').last,
+
+                            style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                     color: Color(0xFF1E3799),
@@ -290,7 +361,8 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  project['description'],
+                                  //project['description'],
+                                  project.description,
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 14,
@@ -300,7 +372,8 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  project['date'],
+                                 // project['date'],
+                                  project.startDate.toString(),
                                   style: TextStyle(
                                     color: Colors.grey[500],
                                     fontSize: 12,
@@ -308,20 +381,27 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
                                 ),
                                 SizedBox(height: 8),
                                 LinearProgressIndicator(
-                                  value: project['progress'] / 100,
+                                 // value: project['progress'] / 100,
+                                  //value: project.progress as double / 100,
                                   backgroundColor: Colors.grey[300],
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    _getStatusColor(project['status']),
+                                   // _getStatusColor(project['status']),
+                                   // _getStatusColor(project.status as String),
+                                    _getStatusColor(project.status.toString()),
+                                  //  color: _getStatusColor(project.status.toString()).withOpacity(0.1),
+
                                   ),
                                 ),
                                 SizedBox(height: 4),
-                                Text(
-                                  '${project['progress']}% Completed',
+                               *//* Text(
+                                 // '${project['progress']}% Completed',
+                                  //'${project.progress}% Completed',
+                                  //'${project.progress}% Completed',
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 12,
                                   ),
-                                ),
+                                ),*//*
                               ],
                             ),
                           ),
@@ -334,13 +414,19 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getStatusColor(project['status']).withOpacity(0.1),
+                                 // color: _getStatusColor(project['status']).withOpacity(0.1),
+                                 // color: _getStatusColor(project.status as String).withOpacity(0.1),
+                                  color: _getStatusColor(project.status.toString()).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  project['status'],
+                                 // project['status'],
+                                 // project.status as String,
+                                  project.status.toString().split('.').last,
                                   style: TextStyle(
-                                    color: _getStatusColor(project['status']),
+                                   // color: _getStatusColor(project['status']),
+                                  //  color: _getStatusColor(project.status as String),
+                                    color: _getStatusColor(project.status.toString()),
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -381,7 +467,7 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
     );
   }
 
-  void _navigateToProjectCreation() async {
+  *//*void _navigateToProjectCreation() async {
     final newProject = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
@@ -391,13 +477,47 @@ class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
 
     if (newProject != null) {
       setState(() {
-        _allProjects.add(newProject);
-        _filteredProjects.add(newProject);
+        _allProjects.add(newProject as Project);
+        _filteredProjects.add(newProject as Project);
       });
     }
-  }
-}
+  }*//*
+  void _navigateToProjectCreation() async {
+    final newProjectData = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProjectCreationScreen(),
+      ),
+    );
 
+    if (newProjectData != null) {
+      // Debugging: Print the contents of newProjectData
+      print("New Project Data: $newProjectData");
+
+      // Check if 'id' exists and is not null
+      final projectId = newProjectData['id'];
+
+      if (projectId == null) {
+        print("Error: Project ID is null.");
+        return;  // Return early to avoid calling Project.fromJson() with null id.
+      }
+
+      // Proceed with creating the Project object
+      try {
+        final newProject = Project.fromJson(projectId, newProjectData);
+        setState(() {
+          _allProjects.add(newProject);
+          _filteredProjects.add(newProject);
+        });
+      } catch (e) {
+        print("Error creating project: $e");
+      }
+    }
+  }
+
+}*/
+
+/*
 class ProjectCreationScreen extends StatefulWidget {
   const ProjectCreationScreen({Key? key}) : super(key: key);
 
@@ -409,6 +529,40 @@ class _ProjectCreationScreenState extends State<ProjectCreationScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   String _selectedStatus = 'In Progress';
+
+
+  Future<void> _saveProject() async {
+    try {
+      // Validate the selected status, use default if invalid
+      final status = ProjectStatus.values.firstWhere(
+            (e) => e.toString().split('.').last == _selectedStatus,
+        orElse: () => ProjectStatus.notStarted, // Default status if invalid
+      );
+
+      final project = Project(
+        id: 'PRJ${DateTime.now().millisecondsSinceEpoch}',
+        name: _titleController.text,
+        description: _descriptionController.text,
+        homeownerId: 'https://console.firebase.google.com/project/buildbuddy2025/database/buildbuddy2025-default-rtdb/data/~2Fuser~2Fhomeowner~2FhzJkCnhyH1dJ54gJAD8oodTmjsE3',
+        contractorId: 'https://console.firebase.google.com/project/buildbuddy2025/database/buildbuddy2025-default-rtdb/data/~2Fuser~2Fcontractor~2F1U3Cl2VKJWNWSxHommyRopJ9HhQ2',
+        architectId: 'https://console.firebase.google.com/project/buildbuddy2025/database/buildbuddy2025-default-rtdb/data/~2Fuser~2Farchitect~2FsK6FIZDS5ESU0XU4fHZXQl6Pqo22',
+        status: status,
+        startDate: DateTime.now(),
+        endDate: null,
+        //materialOrders: [],
+        //payments: [],
+      );
+
+      // Save project to the database
+      await ProjectService().addProject(project);
+
+      // Return to the previous screen with the project data
+      Navigator.pop(context, project);
+    } catch (e) {
+      print('Error saving project: $e');
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -663,4 +817,249 @@ class _ProjectCreationScreenState extends State<ProjectCreationScreen> {
       ),
     );
   }
+}*/
+
+
+
+
+
+
+
+
+
+
+
+
+////////////
+import 'package:buildbuddyfyp/Controllers/projectController.dart';
+import 'package:buildbuddyfyp/Models/projectModel.dart';
+
+import 'package:buildbuddyfyp/Views/DashBoard/HomeOwner/projectListItem.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+
+import 'package:firebase_auth/firebase_auth.dart';
+
+
+
+class MyProjectsDashboard extends StatefulWidget {
+  final String userType;
+
+  const MyProjectsDashboard({required this.userType, Key? key}) : super(key: key);
+
+  @override
+  _MyProjectsDashboardState createState() => _MyProjectsDashboardState();
 }
+
+class _MyProjectsDashboardState extends State<MyProjectsDashboard> {
+  String? _selectedFilter;
+  late ProjectController _projectController;
+
+  @override
+  void initState() {
+    super.initState();
+    _projectController = ProjectController(widget.userType);
+    _loadProjects();
+  }
+
+  Future<void> _loadProjects() async {
+    await _projectController.loadProjects();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _projectController,
+      child: Scaffold(
+          appBar: PreferredSize(
+            preferredSize: Size.fromHeight(kToolbarHeight),
+            child: AppBar(
+              title: Text('My Projects'),
+            ),
+          ),
+        body: Consumer<ProjectController>(
+          builder: (context, controller, _) {
+            if (controller.isLoading) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            return ListView.builder(
+              itemCount: controller.projects.length,
+              itemBuilder: (context, index) {
+                final project = controller.projects[index];
+                return ProjectListItem(
+                  project: project,
+                  onEdit: () => _navigateToEditProject(project),
+                  onDelete: () => _deleteProject(project.id),
+                );
+              },
+            );
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _navigateToCreateProject,
+          child: Icon(Icons.add),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _navigateToCreateProject() async
+  {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final newProject = await Navigator.push<Project>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProjectCreationScreen(
+          userType: widget.userType,
+          userId: user.uid,
+        ),
+      ),
+    );
+
+    if (newProject != null) {
+      await _projectController.addProject(newProject);
+    }
+  }
+  Future<void> _navigateToEditProject(Project project) async {
+    final updatedProject = await Navigator.push<Project>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProjectCreationScreen(
+          userType: widget.userType,
+          userId: project.userId,
+          projectToEdit: project,
+        ),
+      ),
+    );
+
+    if (updatedProject != null) {
+      await _projectController.updateProject(updatedProject);
+    }
+  }
+
+  Future<void> _deleteProject(String projectId) async {
+    await _projectController.deleteProject(projectId);
+  }
+}
+
+// lib/screens/project_creation_screen.dart
+class ProjectCreationScreen extends StatefulWidget {
+  final String userType;
+  final String userId;
+  final Project? projectToEdit;
+
+  const ProjectCreationScreen({
+    required this.userType,
+    required this.userId,
+    this.projectToEdit,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  _ProjectCreationScreenState createState() => _ProjectCreationScreenState();
+}
+
+class _ProjectCreationScreenState extends State<ProjectCreationScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _titleController;
+  late TextEditingController _descriptionController;
+  late ProjectStatus _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.projectToEdit?.title);
+    _descriptionController = TextEditingController(text: widget.projectToEdit?.description);
+    _status = widget.projectToEdit?.status ?? ProjectStatus.inProgress;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight),
+        child: AppBar(
+          title: Text('My Projects'),
+        ),
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: 'Project Title'),
+                validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+                validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+              ),
+              SizedBox(height: 16),
+              DropdownButtonFormField<ProjectStatus>(
+                value: _status,
+                items: ProjectStatus.values.map((status) {
+                  return DropdownMenuItem(
+                    value: status,
+                    child: Text(status.toString().split('.').last),
+                  );
+                }).toList(),
+                onChanged: (value) => setState(() => _status = value!),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _saveProject,
+                child: Text(widget.projectToEdit != null ? 'Update' : 'Create'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveProject() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final project = Project(
+      id: widget.projectToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      title: _titleController.text,
+      description: _descriptionController.text,
+      userId: widget.userId,
+      userType: widget.userType,
+      status: _status,
+      progress: widget.projectToEdit?.progress ?? 0,
+      date: DateTime.now().toIso8601String(),
+      icon: Icons.work,
+    );
+
+    Navigator.pop(context, project);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

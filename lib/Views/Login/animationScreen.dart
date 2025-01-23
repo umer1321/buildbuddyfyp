@@ -99,7 +99,7 @@ class _AuthSuccessAnimationState extends State<AuthSuccessAnimation>
                     child: Transform.scale(
                       scale: _checkAnimation.value,
                       child: Transform.rotate(
-                        angle: _checkAnimation.value * 0.2, // Slight rotation for dynamic effect
+                        angle: _checkAnimation.value * 0.2,
                         child: BounceAnimation(
                           bounceValue: _bounceAnimation.value,
                           child: const Icon(

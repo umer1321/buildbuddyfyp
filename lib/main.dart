@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
       title: 'BuildBuddy',
       theme: AppTheme.lightTheme,
       initialRoute: '/',
-      getPages: AppRoutes.getPages, // Use the updated AppRoutes.getPages
+      getPages: AppRoutes.getPages,
     );
   }
 }
